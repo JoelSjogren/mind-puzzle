@@ -1,0 +1,72 @@
+#include <png++/image.hpp>
+#include <iostream>
+#include <cassert>
+#include <cstdlib> // For randomness
+#include <ctime> // For randomness
+#include <cstring>
+#include <iterator>
+#include <algorithm>
+using std::cout;
+using std::endl;
+using std::ostream_iterator;
+using std::ostream;
+using std::swap;
+typedef png::rgba_pixel pix_t;
+typedef png::image<pix_t> img_t;
+
+ostream& operator<<(ostream& os, pix_t pix) {
+    os << "(" << (int) pix.red
+       << ", " << (int) pix.green
+       << ", " << (int) pix.blue << ")";
+    return os;
+}
+
+class section {
+public:
+    img_t& img;
+    unsigned x;
+    unsigned y;
+};
+
+void copy(section in, section out, int width, int height) {
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
+            out.img[j + out.y][i + out.x] = in.img[j + in.y][i + in.x];
+        }
+    }
+}
+
+int main(int argc, char* argv[]) {
+    assert(2 < argc); // Program name, file in, file out, pieces
+    
+    srand(time(NULL));
+    
+    img_t img_in(argv[1]);
+    const unsigned in_width = img_in.get_width();
+    const unsigned in_height = img_in.get_height();
+    const unsigned out_width = in_width * 2;
+    const unsigned out_height = in_height;
+    img_t img_out(out_width, out_height);
+    
+    const unsigned piece_param = argc == 4 ? atoi(argv[3]) : 5;
+    assert(0 < piece_param);
+    const unsigned piece_size = in_height / piece_param;
+    const unsigned piece_cx = in_width / piece_size;
+    const unsigned piece_cy = in_height / piece_size;
+    
+    for (size_t i = 0; i < piece_cx; i++) {
+        for (size_t j = 0; j < piece_cy; j++) {
+            section in_sect = {img_in, i * piece_size, j * piece_size};
+            int out_x = (i + rand() % 2 * piece_cx) * piece_size;
+            section out_sect = {img_out, out_x, j * piece_size};
+            copy(in_sect, out_sect, piece_size, piece_size);
+        }
+    }
+        
+    img_out.write(argv[2]);
+}
+
+
+
+
+
